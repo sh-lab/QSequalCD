@@ -97,6 +97,16 @@ Then open the shown local URL in a browser.
 
 ---
 
+## Web Demo
+
+ブラウザで遊べるデモはこちらです。
+
+A playable browser demo is available here.
+
+https://sh-lab.github.io/QSequalCD/
+
+---
+
 ## ステータス / Status
 
 - コアロジック: 完了
