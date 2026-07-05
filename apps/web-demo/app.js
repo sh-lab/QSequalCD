@@ -149,6 +149,7 @@ function render() {
 
 function renderGame() {
   const snapshot = state.snapshot;
+  const revealableCards = revealableCardsInMemberOrder(snapshot);
   const nullifyHandCards = availableNullifyHandCards(snapshot);
   const nullifyTargetCards = nullifiableBoardCards(snapshot);
   const canApplyNullify =
@@ -201,7 +202,7 @@ function renderGame() {
       <h2>カード公開</h2>
       <p class="hint">公開枚数の正当性は C++ コアが判定します。</p>
       <div class="cards">
-        ${snapshot.revealableCards.map((card) => `
+        ${revealableCards.map((card) => `
           <label class="card">
             <input type="checkbox" data-reveal-card="${card.cardId}" ${state.selectedRevealCards.has(card.cardId) ? "checked" : ""} />
             row ${card.row ?? "-"} col ${card.column ?? "-"}${debugCardId(card.cardId)}
@@ -270,6 +271,14 @@ function renderBoardCard(card) {
     ? `${card.kind ?? ""}${card.scoreValue == null ? "" : ` ${card.scoreValue}`}`
     : card.runtimeState;
   return `<div class="card ${card.runtimeState}">col ${card.column}${debugCardId(card.cardId)}<br />${detail}</div>`;
+}
+
+function revealableCardsInMemberOrder(snapshot) {
+  return [...snapshot.revealableCards].sort((left, right) =>
+    ((left.row ?? Number.MAX_SAFE_INTEGER) - (right.row ?? Number.MAX_SAFE_INTEGER)) ||
+    ((left.column ?? Number.MAX_SAFE_INTEGER) - (right.column ?? Number.MAX_SAFE_INTEGER)) ||
+    (left.cardId - right.cardId)
+  );
 }
 
 function debugCardId(cardId) {
