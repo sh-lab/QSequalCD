@@ -175,11 +175,11 @@ JudgeResult judgeResult(const GameState& state) {
   if (state.isDefeatedByAudit) {
     return JudgeResult::DefeatByAudit;
   }
-  const int finalScore = calculateFinalScore(state);
+  const int finalScore = state.finalScore.value_or(calculateFinalScore(state));
   if (finalScore < state.targetScore) {
     return JudgeResult::DefeatByScore;
   }
-  const int finalCost = calculateFinalCost(state);
+  const int finalCost = state.finalCost.value_or(calculateFinalCost(state));
   if (state.costLimit.has_value() && finalCost > *state.costLimit) {
     return JudgeResult::DefeatByCost;
   }

@@ -198,6 +198,7 @@ enum class GameErrorCode {
   DeckEmpty,
   RoundLimitExceeded,
   ExtraRoundNotAllowed,
+  FinishGameNotAllowed,
   InvalidTeamSize,
   InvalidExpectedScore,
   InvariantViolation,

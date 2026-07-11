@@ -25,6 +25,7 @@ struct ContinuationSettings {
   std::optional<int> costLimit;
   bool teamCompositionChanged{};
   std::uint32_t deckSeed{rules::defaultDeckSeed};
+  std::vector<int> retiringColumns;
 };
 
 struct HandPlanEntry {

@@ -86,6 +86,16 @@ bool isValidExpectedScore(int expectedScore) {
   return expectedScore >= rules::minExpectedScore && expectedScore <= rules::maxExpectedScore;
 }
 
+bool canFinishGame(const GameState& state) {
+  if (state.currentRound < rules::baseRoundCount) {
+    return false;
+  }
+  if (calculateFinalScore(state) < state.targetScore && state.currentRound < rules::maxRoundCount) {
+    return false;
+  }
+  return true;
+}
+
 std::uint32_t derivedSeed(std::uint32_t seed, std::uint32_t salt) {
   return seed ^ (salt + 0x9E3779B9U + (seed << 6U) + (seed >> 2U));
 }
@@ -310,6 +320,9 @@ Result<GameState, GameError> finishGame(const GameState& state) {
   if (state.phase != GamePhase::RoundFinished) {
     return fail(GameErrorCode::InvalidPhase);
   }
+  if (!canFinishGame(state)) {
+    return fail(GameErrorCode::FinishGameNotAllowed);
+  }
   GameState next = state;
   next.finalScore = calculateFinalScore(next);
   next.finalCost = calculateFinalCost(next);
@@ -364,8 +377,6 @@ Result<GameState, GameError> drawContinuationCards(const GameState& state) {
     }
   }
   reindexContinuationDeck(next);
-  next.finalScore = calculateFinalScore(next);
-  next.finalCost = calculateFinalCost(next);
   next.phase = GamePhase::ContinuationCardsDrawn;
   return checkedSuccess(std::move(next));
 }
@@ -380,9 +391,34 @@ Result<GameState, GameError> startContinuationGame(const GameState& state, const
   if (!isValidExpectedScore(settings.globalExpectedScore)) {
     return fail(GameErrorCode::InvalidExpectedScore);
   }
-  if (settings.targetScore < calculateFinalScore(state)) {
+  const int previousFinalScore = state.finalScore.value_or(calculateFinalScore(state));
+  if (settings.targetScore < previousFinalScore) {
     return fail(GameErrorCode::InvalidExpectedScore);
   }
+
+  std::set<int> retiringColumns;
+  for (const int column : settings.retiringColumns) {
+    if (column < rules::firstColumn || column >= static_cast<int>(state.members.size())) {
+      return fail(GameErrorCode::InvalidPosition);
+    }
+    retiringColumns.insert(column);
+  }
+
+  std::vector<int> oldToNewColumn(state.members.size(), -1);
+  bool removesExistingMember = false;
+  int keptMemberCount = rules::zeroScore;
+  for (int column = rules::firstColumn; column < static_cast<int>(state.members.size()); ++column) {
+    const auto memberState = state.members[static_cast<std::size_t>(column)];
+    if (memberState != MemberState::Active || retiringColumns.contains(column)) {
+      removesExistingMember = true;
+      continue;
+    }
+    oldToNewColumn[static_cast<std::size_t>(column)] = keptMemberCount++;
+  }
+  if (keptMemberCount > settings.teamSize) {
+    return fail(GameErrorCode::InvalidTeamSize);
+  }
+  const bool compositionChanged = settings.teamCompositionChanged || removesExistingMember || keptMemberCount != settings.teamSize;
 
   GameState next = state;
   next.targetScore = settings.targetScore;
@@ -408,8 +444,20 @@ Result<GameState, GameError> startContinuationGame(const GameState& state, const
     if (definition->category == CardCategory::MemberCard || definition->category == CardCategory::HandCard) {
       position = OutOfGamePosition{};
     }
-    if (settings.teamCompositionChanged && definition->kind == CardKind::ContinuationTeamScoreUp) {
+    if (compositionChanged && definition->kind == CardKind::ContinuationTeamScoreUp) {
       position = OutOfGamePosition{};
+    }
+    if (auto* memberArea = std::get_if<ContinuationMemberAreaPosition>(&position); memberArea != nullptr) {
+      if (memberArea->column < rules::firstColumn || memberArea->column >= static_cast<int>(oldToNewColumn.size())) {
+        position = OutOfGamePosition{};
+        continue;
+      }
+      const int newColumn = oldToNewColumn[static_cast<std::size_t>(memberArea->column)];
+      if (newColumn < rules::firstColumn) {
+        position = OutOfGamePosition{};
+      } else {
+        memberArea->column = newColumn;
+      }
     }
   }
 

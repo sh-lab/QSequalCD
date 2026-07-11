@@ -37,7 +37,7 @@ if(EMSCRIPTEN)
     "SHELL:-sENVIRONMENT=web"
     "SHELL:-sALLOW_MEMORY_GROWTH=1"
     "SHELL:-sNO_EXIT_RUNTIME=1"
-    "SHELL:-sEXPORTED_FUNCTIONS=['_createGame','_destroyGame','_startRound','_planHandUsage','_revealCards','_applyNullify','_finishRound','_requestExtraRound','_finishGame','_getStateSnapshot','_malloc','_free']"
+    "SHELL:-sEXPORTED_FUNCTIONS=['_createGame','_destroyGame','_startRound','_planHandUsage','_revealCards','_applyNullify','_finishRound','_requestExtraRound','_finishGame','_drawContinuationCards','_startContinuationGame','_getStateSnapshot','_malloc','_free']"
     "SHELL:-sEXPORTED_RUNTIME_METHODS=['cwrap','ccall','UTF8ToString','HEAPU32','HEAP32']"
     "SHELL:--no-entry"
   )

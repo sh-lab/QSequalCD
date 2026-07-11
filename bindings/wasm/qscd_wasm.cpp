@@ -23,6 +23,7 @@ struct WasmGame {
   std::optional<GameState> state;
   std::optional<GameError> lastError;
   std::string snapshot;
+  std::vector<std::pair<int, CardId>> lastDrawnContinuationCards;
 };
 
 std::unordered_map<QSCD_GameHandle, WasmGame> games;
@@ -150,9 +151,38 @@ const char* errorCodeName(GameErrorCode code) {
     case GameErrorCode::DeckEmpty: return "DeckEmpty";
     case GameErrorCode::RoundLimitExceeded: return "RoundLimitExceeded";
     case GameErrorCode::ExtraRoundNotAllowed: return "ExtraRoundNotAllowed";
+    case GameErrorCode::FinishGameNotAllowed: return "FinishGameNotAllowed";
     case GameErrorCode::InvalidTeamSize: return "InvalidTeamSize";
     case GameErrorCode::InvalidExpectedScore: return "InvalidExpectedScore";
     case GameErrorCode::InvariantViolation: return "InvariantViolation";
+  }
+  return "Unknown";
+}
+
+const char* positionName(const Position& position) {
+  if (std::holds_alternative<DeckPosition>(position)) {
+    return "Deck";
+  }
+  if (std::holds_alternative<HandPosition>(position)) {
+    return "Hand";
+  }
+  if (std::holds_alternative<BoardPosition>(position)) {
+    return "Board";
+  }
+  if (std::holds_alternative<BoardSidePosition>(position)) {
+    return "BoardSide";
+  }
+  if (std::holds_alternative<ContinuationDeckPosition>(position)) {
+    return "ContinuationDeck";
+  }
+  if (std::holds_alternative<ContinuationMemberAreaPosition>(position)) {
+    return "ContinuationMemberArea";
+  }
+  if (std::holds_alternative<ContinuationTeamAreaPosition>(position)) {
+    return "ContinuationTeamArea";
+  }
+  if (std::holds_alternative<OutOfGamePosition>(position)) {
+    return "OutOfGame";
   }
   return "Unknown";
 }
@@ -216,6 +246,18 @@ std::string buildSnapshot(const WasmGame& game) {
     out << "\"costLimit\":null,";
   }
   out << "\"deckSeed\":" << state.deckSeed << ',';
+  out << "\"isContinuationGame\":" << (state.isContinuationGame ? "true" : "false") << ',';
+  out << "\"isDefeatedByAudit\":" << (state.isDefeatedByAudit ? "true" : "false") << ',';
+  out << "\"hasUsedForcedUnpaidOvertime\":" << (state.hasUsedForcedUnpaidOvertime ? "true" : "false") << ',';
+
+  out << "\"forcedUnpaidOvertimeRounds\":[";
+  for (std::size_t i = 0; i < state.forcedUnpaidOvertimeRounds.size(); ++i) {
+    if (i != 0) {
+      out << ',';
+    }
+    out << state.forcedUnpaidOvertimeRounds[i];
+  }
+  out << "],";
 
   out << "\"members\":[";
   for (std::size_t i = 0; i < state.members.size(); ++i) {
@@ -321,6 +363,60 @@ std::string buildSnapshot(const WasmGame& game) {
     out << "{\"cardId\":" << id.value;
     if (board != nullptr) {
       out << ",\"row\":" << board->row << ",\"column\":" << board->column;
+    }
+    out << '}';
+  }
+  out << "],";
+
+  std::vector<CardId> continuationIds;
+  for (const auto& [id, definition] : state.cardDefinitions) {
+    if (definition.category == CardCategory::ContinuationCard) {
+      continuationIds.push_back(id);
+    }
+  }
+  std::sort(continuationIds.begin(), continuationIds.end());
+  out << "\"continuationCards\":[";
+  bool firstContinuation = true;
+  for (const auto id : continuationIds) {
+    const auto* definition = definitionFor(state, id);
+    const auto* position = positionFor(state, id);
+    if (definition == nullptr || position == nullptr) {
+      continue;
+    }
+    if (std::holds_alternative<ContinuationDeckPosition>(*position)) {
+      continue;
+    }
+    if (!firstContinuation) {
+      out << ',';
+    }
+    firstContinuation = false;
+    out << "{\"cardId\":" << id.value;
+    out << ",\"kind\":\"" << cardKindName(definition->kind) << "\"";
+    out << ",\"position\":\"" << positionName(*position) << "\"";
+    if (const auto* member = std::get_if<ContinuationMemberAreaPosition>(position); member != nullptr) {
+      out << ",\"column\":" << member->column << ",\"slot\":" << member->slot;
+    }
+    if (const auto* team = std::get_if<ContinuationTeamAreaPosition>(position); team != nullptr) {
+      out << ",\"slot\":" << team->slot;
+    }
+    out << '}';
+  }
+  out << "],";
+
+  out << "\"drawnContinuationCards\":[";
+  for (std::size_t i = 0; i < game.lastDrawnContinuationCards.size(); ++i) {
+    if (i != 0) {
+      out << ',';
+    }
+    const auto [column, id] = game.lastDrawnContinuationCards[i];
+    const auto* definition = definitionFor(state, id);
+    const auto* position = positionFor(state, id);
+    out << "{\"cardId\":" << id.value << ",\"column\":" << column;
+    if (definition != nullptr) {
+      out << ",\"kind\":\"" << cardKindName(definition->kind) << "\"";
+    }
+    if (position != nullptr) {
+      out << ",\"position\":\"" << positionName(*position) << "\"";
     }
     out << '}';
   }
@@ -453,6 +549,77 @@ EMSCRIPTEN_KEEPALIVE std::int32_t finishGame(QSCD_GameHandle handle) {
   return applyCommand(handle, [](const GameState& state) {
     return qscd::core::finishGame(state);
   });
+}
+
+EMSCRIPTEN_KEEPALIVE std::int32_t drawContinuationCards(QSCD_GameHandle handle) {
+  auto* game = findGame(handle);
+  if (game == nullptr) {
+    return 0;
+  }
+  if (!game->state.has_value()) {
+    game->lastError = makeError(GameErrorCode::InvalidPhase);
+    return 0;
+  }
+
+  std::vector<std::pair<int, CardId>> drawnCards;
+  const auto activeMembers = getActiveMembers(*game->state);
+  const auto drawCount = std::min(activeMembers.size(), game->state->continuationDeckOrder.size());
+  drawnCards.reserve(drawCount);
+  for (std::size_t i = 0; i < drawCount; ++i) {
+    drawnCards.emplace_back(activeMembers[i], game->state->continuationDeckOrder[i]);
+  }
+
+  auto result = qscd::core::drawContinuationCards(*game->state);
+  if (!result.hasValue()) {
+    game->lastError = result.error();
+    return 0;
+  }
+
+  game->state = std::move(result.value());
+  game->lastDrawnContinuationCards = std::move(drawnCards);
+  game->lastError.reset();
+  return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE std::int32_t startContinuationGame(
+  QSCD_GameHandle handle,
+  std::int32_t targetScore,
+  std::int32_t teamSize,
+  std::int32_t globalExpectedScore,
+  std::int32_t hasCostLimit,
+  std::int32_t costLimit,
+  std::int32_t teamCompositionChanged,
+  std::uint32_t deckSeed,
+  const std::uint32_t* retiringColumns,
+  std::int32_t retiringColumnCount
+) {
+  auto* game = findGame(handle);
+  if (game == nullptr) {
+    return 0;
+  }
+  if (retiringColumnCount < 0 || (retiringColumnCount > 0 && retiringColumns == nullptr)) {
+    game->lastError = makeError(GameErrorCode::InvalidPosition);
+    return 0;
+  }
+  ContinuationSettings settings{
+    targetScore,
+    teamSize,
+    globalExpectedScore,
+    hasCostLimit != 0 ? std::optional<int>{costLimit} : std::nullopt,
+    teamCompositionChanged != 0,
+    deckSeed,
+  };
+  settings.retiringColumns.reserve(static_cast<std::size_t>(retiringColumnCount));
+  for (std::int32_t i = 0; i < retiringColumnCount; ++i) {
+    settings.retiringColumns.push_back(static_cast<int>(retiringColumns[i]));
+  }
+  const auto result = applyCommand(handle, [&settings](const GameState& state) {
+    return qscd::core::startContinuationGame(state, settings);
+  });
+  if (result != 0) {
+    game->lastDrawnContinuationCards.clear();
+  }
+  return result;
 }
 
 EMSCRIPTEN_KEEPALIVE const char* getStateSnapshot(QSCD_GameHandle handle) {

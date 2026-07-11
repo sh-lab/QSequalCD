@@ -34,6 +34,19 @@ std::int32_t applyNullify(QSCD_GameHandle handle, std::uint32_t handCardId, std:
 std::int32_t finishRound(QSCD_GameHandle handle);
 std::int32_t requestExtraRound(QSCD_GameHandle handle, std::int32_t forcedUnpaidOvertime);
 std::int32_t finishGame(QSCD_GameHandle handle);
+std::int32_t drawContinuationCards(QSCD_GameHandle handle);
+std::int32_t startContinuationGame(
+  QSCD_GameHandle handle,
+  std::int32_t targetScore,
+  std::int32_t teamSize,
+  std::int32_t globalExpectedScore,
+  std::int32_t hasCostLimit,
+  std::int32_t costLimit,
+  std::int32_t teamCompositionChanged,
+  std::uint32_t deckSeed,
+  const std::uint32_t* retiringColumns,
+  std::int32_t retiringColumnCount
+);
 const char* getStateSnapshot(QSCD_GameHandle handle);
 
 }

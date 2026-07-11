@@ -122,4 +122,11 @@ inline GameState playSimpleRound(GameState state) {
   return finishRoundValue(state);
 }
 
+inline GameState playBaseRounds(GameState state) {
+  for (int round = rules::firstRoundNumber; round <= rules::baseRoundCount; ++round) {
+    state = playSimpleRound(state);
+  }
+  return state;
+}
+
 } // namespace qscd::core::tests
