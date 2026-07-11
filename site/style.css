@@ -2,6 +2,11 @@
   color: #1f2933;
   background: #f5f7fa;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
@@ -9,117 +14,455 @@ body {
 }
 
 main {
-  max-width: 1100px;
+  max-width: 1440px;
   margin: 0 auto;
   padding: 24px;
 }
 
-.panel {
-  background: #fff;
-  border: 1px solid #d9e2ec;
-  border-radius: 10px;
-  margin-bottom: 16px;
-  padding: 16px;
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
 }
 
-.settings,
-.commands,
-.grid,
-.members,
-.cards,
-.hand-plan,
-.nullify {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+h1 {
+  font-size: 1.6rem;
+  margin-bottom: 4px;
 }
 
-.grid > div {
-  min-width: 180px;
+h2 {
+  font-size: 1.05rem;
+  border-bottom: 1px solid #d9e2ec;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
 }
 
-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+h3 {
+  font-size: 0.95rem;
+  margin-bottom: 8px;
 }
 
+button,
 input,
-select,
-button {
+select {
   font: inherit;
 }
 
 button {
   border: 1px solid #829ab1;
-  border-radius: 6px;
+  border-radius: 8px;
   background: #f0f4f8;
   cursor: pointer;
-  padding: 6px 10px;
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
+  padding: 8px 12px;
 }
 
 button:hover:not(:disabled) {
   background: #d9e2ec;
 }
 
-code {
-  background: #f0f4f8;
-  border-radius: 4px;
-  padding: 2px 4px;
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
+input,
+select {
+  border: 1px solid #bcccdc;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+label {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+code,
+pre {
+  background: #f0f4f8;
+  border-radius: 6px;
+}
+
+code {
+  padding: 2px 5px;
+}
+
+pre {
+  overflow: auto;
+  padding: 12px;
+}
+
+.app-header,
+.panel,
+.status-bar {
+  background: #fff;
+  border: 1px solid #d9e2ec;
+  border-radius: 12px;
+}
+
+.app-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 18px 20px;
+}
+
+.app-header p,
 .hint {
+  color: #627d98;
+  margin-bottom: 0;
+}
+
+.header-actions,
+.start-settings,
+.team-edit {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.panel {
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.start-panel {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.target {
+  color: #0b5e3c;
+  font-size: 1.1rem;
+}
+
+.seed {
   color: #52606d;
 }
 
+.status-bar {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  margin-bottom: 16px;
+  padding: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.status-bar div {
+  border-left: 4px solid #2680c2;
+  padding: 4px 10px;
+}
+
+.status-bar span {
+  color: #52606d;
+  display: block;
+  font-size: 0.8rem;
+}
+
+.status-bar strong {
+  font-size: 1.1rem;
+}
+
+.main-board {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(180px, 1fr) minmax(520px, 2.4fr) minmax(260px, 1fr);
+}
+
+.continuation-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.team-list,
+.intervention-slots {
+  display: grid;
+  gap: 10px;
+}
+
+.team-member,
+.intervention-slot,
+.select-card {
+  border: 1px solid #bcccdc;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.team-member h3,
+.team-member p,
+.intervention-slot p {
+  margin-bottom: 4px;
+}
+
+.team-member.Active {
+  border-left: 5px solid #2f855a;
+}
+
+.team-member.LeftProject,
+.team-member.Resigned {
+  background: #fff5f5;
+  border-left: 5px solid #c53030;
+}
+
+.project-board,
+.history-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.project-board th,
+.project-board td,
+.history-table th,
+.history-table td {
+  border: 1px solid #d9e2ec;
+  padding: 8px;
+  text-align: center;
+  vertical-align: top;
+}
+
+.project-board th {
+  background: #f0f4f8;
+}
+
+.project-board td {
+  min-width: 78px;
+}
+
+.unused-round {
+  background: #f7f7f7;
+  color: #829ab1;
+}
+
+.state-card,
+.empty-card {
+  border-radius: 8px;
+  min-height: 62px;
+  padding: 8px;
+}
+
+.state-card strong,
+.state-card span,
+.empty-card {
+  display: block;
+}
+
+.state-card strong {
+  font-size: 1.25rem;
+}
+
+.facedown {
+  background: #e0e8f9;
+  color: #243b53;
+}
+
+.success {
+  background: #e3f8e8;
+  color: #0b5e3c;
+}
+
+.pm {
+  background: #f5e8ff;
+  color: #5f3dc4;
+  margin-bottom: 6px;
+}
+
+.leave,
+.warning {
+  background: #fff5f5;
+  color: #b42318;
+  font-weight: 700;
+}
+
+.empty-card {
+  background: #f0f4f8;
+  color: #829ab1;
+}
+
+.operation-panel button {
+  margin: 6px 6px 0 0;
+}
+
+.phase-message {
+  background: #e0f2fe;
+  border-left: 5px solid #2680c2;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.reveal-list,
+.nullify-select {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.nullify-select {
+  grid-template-columns: 1fr 1fr;
+}
+
+.select-card {
+  background: #f8fafc;
+  display: flex;
+}
+
+.pm-intervention {
+  border-top: 1px solid #d9e2ec;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.pm-intervention h3 {
+  color: #5f3dc4;
+}
+
+.pm-resource {
+  align-items: center;
+  background: #fbfbfd;
+  border: 1px solid #d9e2ec;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding: 12px;
+}
+
+.pm-resource-label {
+  color: #52606d;
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+
+.pm-dots {
+  color: #5f3dc4;
+  font-size: 1.4rem;
+  letter-spacing: 0.24rem;
+  line-height: 1;
+}
+
+.pm-dot.spent {
+  color: #bcccdc;
+}
+
+.intervention-slots {
+  grid-template-columns: 1fr;
+  margin-top: 12px;
+}
+
+.intervention-slot {
+  background: #fbfbfd;
+}
+
+.intervention-slot label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.intervention-slot.locked {
+  background: #f5e8ff;
+  border-left: 5px solid #5f3dc4;
+}
+
+.continuation-panel {
+  border-left: 5px solid #5f3dc4;
+}
+
+.continuation-setup {
+  border-left: 5px solid #2680c2;
+}
+
+.continuation-setup ul {
+  margin-bottom: 0;
+  padding-left: 20px;
+}
+
+.next-team {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.next-team span {
+  background: #f0f4f8;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.next-team small {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.muted {
+  color: #627d98;
+  font-size: 0.85em;
+}
+
+.next-team .resigning,
+.warning-text,
+.danger-option,
 .error {
   color: #b42318;
   font-weight: 700;
 }
 
-.member,
-.card {
-  border: 1px solid #bcccdc;
-  border-radius: 8px;
-  padding: 8px;
-}
-
-.member.LeftProject,
-.member.Resigned {
-  background: #ffeeee;
-}
-
-.card {
-  background: #f8fafc;
-  min-width: 120px;
-}
-
-.card.FaceDown {
-  background: #e0e8f9;
-}
-
-.card.FaceUp {
-  background: #e3f8e8;
-}
-
-.card.NullifiedAsFaceDown {
-  background: #fff3c4;
-}
-
-.card.side {
+.next-team .joining {
   background: #f5e8ff;
+  color: #5f3dc4;
 }
 
-.board-row {
-  border-top: 1px solid #d9e2ec;
-  padding-top: 8px;
+.error-panel {
+  background: #fff5f5;
+  border-color: #feb2b2;
+  color: #b42318;
 }
 
-.empty {
-  color: #627d98;
+.debug-panel summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+  .main-board,
+  .intervention-slots,
+  .continuation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .status-bar {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  main {
+    padding: 12px;
+  }
+
+  .app-header,
+  .start-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .status-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .project-panel {
+    overflow-x: auto;
+  }
 }
