@@ -5,7 +5,7 @@ const usageCodes = {
   Nullify: 2
 };
 
-const targetScore = 60;
+const targetScore = 63;
 const minTeamSize = 3;
 const maxTeamSize = 6;
 const handSize = 5;
