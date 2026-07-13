@@ -57,6 +57,25 @@ std::optional<GameError> validateInvariants(const GameState& state) {
     }
   }
 
+  std::set<CardId> continuationDeckIds;
+  for (int i = 0; i < static_cast<int>(state.continuationDeckOrder.size()); ++i) {
+    const auto id = state.continuationDeckOrder[static_cast<std::size_t>(i)];
+    if (!continuationDeckIds.insert(id).second) {
+      return invariantError(id);
+    }
+    const auto definitionIt = state.cardDefinitions.find(id);
+    const auto positionIt = state.positions.find(id);
+    if (definitionIt == state.cardDefinitions.end() ||
+        definitionIt->second.category != CardCategory::ContinuationCard ||
+        positionIt == state.positions.end()) {
+      return invariantError(id);
+    }
+    const auto* deck = std::get_if<ContinuationDeckPosition>(&positionIt->second);
+    if (deck == nullptr || deck->index != i) {
+      return invariantError(id);
+    }
+  }
+
   for (int round = rules::firstRoundNumber; round <= state.currentRound; ++round) {
     int plannedHandCards = rules::zeroScore;
     for (const auto& [id, position] : state.positions) {

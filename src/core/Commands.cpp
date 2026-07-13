@@ -105,6 +105,30 @@ void shuffleDeck(std::vector<CardDefinition>& deck, std::uint32_t seed) {
   std::shuffle(deck.begin(), deck.end(), engine);
 }
 
+void shuffleCardIds(std::vector<CardId>& deck, std::uint32_t seed) {
+  std::mt19937 engine{seed};
+  std::shuffle(deck.begin(), deck.end(), engine);
+}
+
+void rebuildContinuationDeck(GameState& state) {
+  std::vector<CardId> rebuiltDeck = state.continuationDeckOrder;
+  std::vector<CardId> recycled;
+  for (const auto& [id, position] : state.positions) {
+    if (!std::holds_alternative<OutOfGamePosition>(position)) {
+      continue;
+    }
+    const auto* definition = definitionFor(state, id);
+    if (definition != nullptr && definition->category == CardCategory::ContinuationCard) {
+      recycled.push_back(id);
+    }
+  }
+  std::sort(recycled.begin(), recycled.end());
+  rebuiltDeck.insert(rebuiltDeck.end(), recycled.begin(), recycled.end());
+  shuffleCardIds(rebuiltDeck, derivedSeed(state.deckSeed, 0x52454359U));
+  state.continuationDeckOrder = std::move(rebuiltDeck);
+  reindexContinuationDeck(state);
+}
+
 Result<GameState, GameError> checkedSuccess(GameState state) {
   if (const auto invariant = validateInvariants(state); invariant.has_value()) {
     return Result<GameState, GameError>::failure(*invariant);
@@ -126,6 +150,7 @@ Result<GameState, GameError> startGame(const GameSettings& settings) {
   state.targetScore = settings.targetScore;
   state.teamSize = settings.teamSize;
   state.globalExpectedScore = settings.globalExpectedScore;
+  state.baseCostLimit = settings.costLimit;
   state.costLimit = settings.costLimit;
   state.deckSeed = settings.deckSeed;
   state.phase = GamePhase::GameStarted;
@@ -369,6 +394,10 @@ Result<GameState, GameError> drawContinuationCards(const GameState& state) {
       case CardKind::ContinuationMemberScoreUp:
         next.positions[id] = ContinuationMemberAreaPosition{column, nextMemberAreaSlot(next, column)};
         break;
+      case CardKind::ContinuationCostReductionPressure:
+        next.pendingCostLimitReduction += rules::costReductionPressureValue;
+        next.positions[id] = OutOfGamePosition{};
+        break;
       case CardKind::ContinuationNone:
         next.positions[id] = OutOfGamePosition{};
         break;
@@ -376,7 +405,7 @@ Result<GameState, GameError> drawContinuationCards(const GameState& state) {
         return fail(GameErrorCode::InvalidCardId, id);
     }
   }
-  reindexContinuationDeck(next);
+  rebuildContinuationDeck(next);
   next.phase = GamePhase::ContinuationCardsDrawn;
   return checkedSuccess(std::move(next));
 }
@@ -424,13 +453,16 @@ Result<GameState, GameError> startContinuationGame(const GameState& state, const
   next.targetScore = settings.targetScore;
   next.teamSize = settings.teamSize;
   next.globalExpectedScore = settings.globalExpectedScore;
-  next.costLimit = settings.costLimit;
+  next.baseCostLimit = settings.costLimit;
+  next.cumulativeCostLimitReduction = state.cumulativeCostLimitReduction + state.pendingCostLimitReduction;
+  next.costLimit = next.baseCostLimit - next.cumulativeCostLimitReduction;
   next.deckSeed = settings.deckSeed;
   next.currentRound = rules::zeroScore;
   next.maxRound = rules::baseRoundCount;
   next.isContinuationGame = true;
   next.hasUsedForcedUnpaidOvertime = false;
   next.isDefeatedByAudit = false;
+  next.pendingCostLimitReduction = rules::zeroScore;
   next.forcedUnpaidOvertimeRounds.clear();
   next.finalScore.reset();
   next.finalCost.reset();
@@ -444,7 +476,9 @@ Result<GameState, GameError> startContinuationGame(const GameState& state, const
     if (definition->category == CardCategory::MemberCard || definition->category == CardCategory::HandCard) {
       position = OutOfGamePosition{};
     }
-    if (compositionChanged && definition->kind == CardKind::ContinuationTeamScoreUp) {
+    if (compositionChanged &&
+        definition->kind == CardKind::ContinuationTeamScoreUp &&
+        std::holds_alternative<ContinuationTeamAreaPosition>(position)) {
       position = OutOfGamePosition{};
     }
     if (auto* memberArea = std::get_if<ContinuationMemberAreaPosition>(&position); memberArea != nullptr) {
@@ -474,6 +508,7 @@ Result<GameState, GameError> startContinuationGame(const GameState& state, const
     insertDefinition(next, handCards[static_cast<std::size_t>(i)], HandPosition{i});
   }
 
+  rebuildContinuationDeck(next);
   next.phase = GamePhase::GameStarted;
   return checkedSuccess(std::move(next));
 }

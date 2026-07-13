@@ -180,7 +180,7 @@ JudgeResult judgeResult(const GameState& state) {
     return JudgeResult::DefeatByScore;
   }
   const int finalCost = state.finalCost.value_or(calculateFinalCost(state));
-  if (state.costLimit.has_value() && finalCost > *state.costLimit) {
+  if (finalCost > state.costLimit) {
     return JudgeResult::DefeatByCost;
   }
   return JudgeResult::Victory;

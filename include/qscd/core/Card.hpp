@@ -62,13 +62,13 @@ enum class CardIdValue : std::uint32_t {
   ContinuationResign_01,
   ContinuationTeamScoreUp_01,
   ContinuationTeamScoreUp_02,
-  ContinuationTeamScoreUp_03,
   ContinuationMemberCostUp_01,
   ContinuationMemberCostUp_02,
   ContinuationMemberCostUp_03,
   ContinuationMemberScoreUp_01,
   ContinuationMemberScoreUp_02,
   ContinuationMemberScoreUp_03,
+  ContinuationCostReductionPressure_01,
   ContinuationNone_01,
   ContinuationNone_02,
   ContinuationNone_03,
@@ -100,6 +100,7 @@ enum class CardKind {
   ContinuationTeamScoreUp,
   ContinuationMemberCostUp,
   ContinuationMemberScoreUp,
+  ContinuationCostReductionPressure,
   ContinuationNone,
 };
 
@@ -110,6 +111,7 @@ enum class EffectType {
   TeamScoreUp,
   MemberCostUp,
   MemberScoreUp,
+  CostReductionPressure,
   None,
 };
 

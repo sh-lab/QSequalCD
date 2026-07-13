@@ -16,7 +16,7 @@
 namespace qscd::core::tests {
 
 inline constexpr int lowTargetScore = rules::memberCostUpValue;
-inline constexpr int defaultTargetScore = 100;
+inline constexpr int defaultTargetScore = rules::defaultTargetScore;
 inline constexpr int unreachableTargetScore = 1000;
 inline constexpr int invalidLowTeamSize = rules::minTeamSize - rules::memberCostUpValue;
 inline constexpr int invalidHighTeamSize = rules::maxTeamSize + rules::memberCostUpValue;
@@ -38,7 +38,7 @@ inline void require(bool condition, const char* expression, const char* file, in
 #define QSCD_REQUIRE(expr) ::qscd::core::tests::require(static_cast<bool>(expr), #expr, __FILE__, __LINE__)
 
 inline GameState startedGame(int targetScore = defaultTargetScore, int teamSize = rules::minTeamSize, int expectedScore = rules::minExpectedScore) {
-  auto result = startGame(GameSettings{targetScore, teamSize, expectedScore, std::nullopt});
+  auto result = startGame(GameSettings{targetScore, teamSize, expectedScore, rules::defaultCostLimit});
   QSCD_REQUIRE(result.hasValue());
   return result.value();
 }

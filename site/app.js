@@ -6,6 +6,7 @@ const usageCodes = {
 };
 
 const targetScore = 63;
+const defaultCostLimit = 30;
 const minTeamSize = 3;
 const maxTeamSize = 6;
 const handSize = 5;
@@ -34,6 +35,16 @@ if (!root) {
   throw new Error("Missing #app root element");
 }
 
+function displayedNextCostLimit(snapshot) {
+  if (!snapshot) {
+    return defaultCostLimit;
+  }
+  if (snapshot.phase === "ContinuationCardsDrawn") {
+    return snapshot.costLimit - (snapshot.pendingCostLimitReduction ?? 0);
+  }
+  return snapshot.costLimit ?? defaultCostLimit;
+}
+
 initialize();
 
 async function initialize() {
@@ -57,7 +68,7 @@ async function initialize() {
 
 function createApi(module) {
   return {
-    createGame: module.cwrap("createGame", "number", ["number", "number", "number", "number", "number", "number"]),
+    createGame: module.cwrap("createGame", "number", ["number", "number", "number", "number", "number"]),
     destroyGame: module.cwrap("destroyGame", null, ["number"]),
     startRound: module.cwrap("startRound", "number", ["number"]),
     planHandUsage: module.cwrap("planHandUsage", "number", ["number", "number", "number", "number"]),
@@ -67,7 +78,7 @@ function createApi(module) {
     requestExtraRound: module.cwrap("requestExtraRound", "number", ["number", "number"]),
     finishGame: module.cwrap("finishGame", "number", ["number"]),
     drawContinuationCards: module.cwrap("drawContinuationCards", "number", ["number"]),
-    startContinuationGame: module.cwrap("startContinuationGame", "number", ["number", "number", "number", "number", "number", "number", "number", "number", "number", "number"]),
+    startContinuationGame: module.cwrap("startContinuationGame", "number", ["number", "number", "number", "number", "number", "number", "number", "number", "number"]),
     getStateSnapshot: module.cwrap("getStateSnapshot", "number", ["number"])
   };
 }
@@ -182,7 +193,8 @@ function renderStartPanel() {
       <div>
         <h2>ゲーム開始</h2>
         <p class="target">目標スコア: <strong>${displayedTargetScore}</strong></p>
-        <p class="hint">${isFirstGame ? "最初のゲームの目標スコアは固定です。" : "継続ゲームでは前回最終スコア以上に更新されます。"} 新しいゲームごとにシードを自動生成します。</p>
+        <p class="target">コスト制約: <strong>${displayedNextCostLimit(state.snapshot)}</strong></p>
+        <p class="hint">${isFirstGame ? "最初のゲームの目標スコアは固定です。" : "継続ゲームでは前回最終スコア以上に更新されます。"} スコア達成とコスト制約の両立が勝利条件です。新しいゲームごとにシードを自動生成します。</p>
       </div>
       <div class="start-settings">
         <label>チーム人数
@@ -223,7 +235,7 @@ function renderStatusBar(snapshot) {
   return `
     <section class="status-bar" aria-label="ステータス">
       <div><span>Scope</span><strong>${snapshot.score} / ${snapshot.targetScore}</strong></div>
-      <div><span>Cost</span><strong>${snapshot.cost}${snapshot.costLimit == null ? "" : ` / ${snapshot.costLimit}`}</strong></div>
+      <div><span>Cost</span><strong>${snapshot.cost} / ${snapshot.costLimit}</strong></div>
       <div><span>Delivery</span><strong>${snapshot.currentRound} / ${snapshot.maxRound}</strong></div>
       <div><span>見込み</span><strong>${snapshot.globalExpectedScore}</strong></div>
       <div><span>介入</span><strong>${snapshot.handCards.length} / ${handSize}</strong></div>
@@ -385,9 +397,13 @@ function renderPhaseControls(snapshot, canApplyNullify) {
 
 function renderRoundFinishedControls(snapshot) {
   const reachedTarget = snapshot.score >= snapshot.targetScore;
+  const withinCostLimit = snapshot.cost <= snapshot.costLimit;
   const beforeBaseRounds = snapshot.currentRound < 3;
   const canRequestExtra = snapshot.currentRound >= 3 && snapshot.currentRound < boardRounds && !reachedTarget;
   const canFinish = !beforeBaseRounds && (reachedTarget || snapshot.currentRound >= boardRounds);
+  const costMessage = withinCostLimit
+    ? "現在のコストは制約内です。"
+    : "現在のコストは制約を超過しているため、このまま終了するとコスト敗北です。";
 
   if (beforeBaseRounds) {
     return `
@@ -406,7 +422,7 @@ function renderRoundFinishedControls(snapshot) {
   }
 
   return `
-    <p>${reachedTarget ? "目標達成です。ゲームを終了できます。" : "最大ラウンドに到達しました。ゲームを終了できます。"}</p>
+    <p>${reachedTarget ? "スコア目標は達成済みです。" : "最大ラウンドに到達しました。"} ${costMessage}</p>
     <button id="finish-game" type="button" ${canFinish ? "" : "disabled"}>ゲーム終了</button>
   `;
 }
@@ -545,6 +561,7 @@ function renderContinuationSetup(snapshot) {
   const selectedRetiringColumns = [...state.continuationRetiringColumns].sort((a, b) => a - b);
   const nextSize = continuationNextTeamSize(snapshot);
   const nextSizeValid = nextSize >= minTeamSize && nextSize <= maxTeamSize;
+  const nextCostLimit = snapshot.costLimit - (snapshot.pendingCostLimitReduction ?? 0);
   const compositionChanged = forcedRetiringColumns.length > 0 || selectedRetiringColumns.length > 0 || state.continuationAddCount > 0;
   const preview = continuationPreview(snapshot);
   return `
@@ -566,6 +583,7 @@ function renderContinuationSetup(snapshot) {
               <input id="continuation-add-count" type="number" min="0" max="${maxContinuationAddCount(snapshot)}" value="${state.continuationAddCount}" />
             </label>
             <span>次ゲーム人数: <strong class="${nextSizeValid ? "" : "warning-text"}">${nextSize} / ${minTeamSize}〜${maxTeamSize}</strong></span>
+            <span>次ゲームコスト制約: <strong>${nextCostLimit}</strong></span>
           </div>
           <div class="retire-select">
             <h4>離任させるメンバー</h4>
@@ -599,9 +617,12 @@ function renderDebug(snapshot) {
     score: snapshot.score,
     cost: snapshot.cost,
     targetScore: snapshot.targetScore,
+    baseCostLimit: snapshot.baseCostLimit,
+    cumulativeCostLimitReduction: snapshot.cumulativeCostLimitReduction,
     teamSize: snapshot.teamSize,
     globalExpectedScore: snapshot.globalExpectedScore,
-    forcedUnpaidOvertimeRounds: snapshot.forcedUnpaidOvertimeRounds
+    forcedUnpaidOvertimeRounds: snapshot.forcedUnpaidOvertimeRounds,
+    pendingCostLimitReduction: snapshot.pendingCostLimitReduction
   };
   return `
     <details class="panel debug-panel" open>
@@ -620,7 +641,7 @@ function startNewGame() {
   }
   const seed = generateDeckSeed();
   state.nextDeckSeed = seed;
-  state.handle = state.api.createGame(targetScore, state.newGameTeamSize, state.newGameExpectedScore, 0, 0, seed);
+  state.handle = state.api.createGame(targetScore, state.newGameTeamSize, state.newGameExpectedScore, defaultCostLimit, seed);
   resetContinuationDraft();
   updateSnapshot(readSnapshot());
   state.nextDeckSeed = generateDeckSeed();
@@ -646,8 +667,7 @@ function startContinuationGame() {
       Math.max(state.snapshot.score, targetScore),
       nextTeamSize,
       state.snapshot.globalExpectedScore,
-      state.snapshot.costLimit == null ? 0 : 1,
-      state.snapshot.costLimit ?? 0,
+      state.snapshot.baseCostLimit ?? defaultCostLimit,
       compositionChanged ? 1 : 0,
       seed,
       retiringColumnsPtr,
@@ -828,7 +848,7 @@ function continuationPreview(snapshot) {
   activeContinuationCards(snapshot).forEach((card) => {
     if (card.position === "ContinuationTeamArea") {
       if (compositionChanged) {
-        expired.push({ ...card, reason: "チーム構成変更で失効" });
+        expired.push({ ...card, reason: "チーム構成変更で失効し山札へ戻る" });
       } else {
         applied.push({ ...card, scope: "team" });
       }
@@ -837,7 +857,7 @@ function continuationPreview(snapshot) {
 
     const nextColumn = columnMap.get(card.column);
     if (nextColumn == null) {
-      expired.push({ ...card, reason: "メンバー離任で失効" });
+      expired.push({ ...card, reason: "メンバー離任で失効し山札へ戻る" });
       return;
     }
 
@@ -1039,6 +1059,7 @@ function continuationEffectLabel(kind) {
     ContinuationTeamScoreUp: "チームスコアアップ",
     ContinuationMemberCostUp: "コスト+1",
     ContinuationMemberScoreUp: "スコア+2",
+    ContinuationCostReductionPressure: "コスト削減圧力",
     ContinuationNone: "何もなし"
   };
   return labels[kind] ?? kind;

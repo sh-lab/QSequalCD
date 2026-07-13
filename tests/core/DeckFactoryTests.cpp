@@ -28,10 +28,11 @@ void runDeckFactoryTests() {
   }
   QSCD_REQUIRE(continuationCounts[CardKind::ContinuationAudit] == rules::auditCardCount);
   QSCD_REQUIRE(continuationCounts[CardKind::ContinuationResign] == rules::resignCardCount);
-  QSCD_REQUIRE(continuationCounts[CardKind::ContinuationTeamScoreUp] == rules::repeatedContinuationCardCount);
-  QSCD_REQUIRE(continuationCounts[CardKind::ContinuationMemberCostUp] == rules::repeatedContinuationCardCount);
-  QSCD_REQUIRE(continuationCounts[CardKind::ContinuationMemberScoreUp] == rules::repeatedContinuationCardCount);
-  QSCD_REQUIRE(continuationCounts[CardKind::ContinuationNone] == rules::repeatedContinuationCardCount);
+  QSCD_REQUIRE(continuationCounts[CardKind::ContinuationTeamScoreUp] == rules::teamScoreUpCardCount);
+  QSCD_REQUIRE(continuationCounts[CardKind::ContinuationMemberCostUp] == rules::memberCostUpCardCount);
+  QSCD_REQUIRE(continuationCounts[CardKind::ContinuationMemberScoreUp] == rules::memberScoreUpCardCount);
+  QSCD_REQUIRE(continuationCounts[CardKind::ContinuationCostReductionPressure] == rules::costReductionPressureCardCount);
+  QSCD_REQUIRE(continuationCounts[CardKind::ContinuationNone] == rules::noneContinuationCardCount);
 
   const auto hands = createHandCards();
   QSCD_REQUIRE(hands.size() == rules::handCardCount);

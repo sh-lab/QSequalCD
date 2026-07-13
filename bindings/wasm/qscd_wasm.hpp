@@ -15,7 +15,6 @@ QSCD_GameHandle createGame(
   std::int32_t targetScore,
   std::int32_t teamSize,
   std::int32_t globalExpectedScore,
-  std::int32_t hasCostLimit,
   std::int32_t costLimit,
   std::uint32_t deckSeed
 );
@@ -40,7 +39,6 @@ std::int32_t startContinuationGame(
   std::int32_t targetScore,
   std::int32_t teamSize,
   std::int32_t globalExpectedScore,
-  std::int32_t hasCostLimit,
   std::int32_t costLimit,
   std::int32_t teamCompositionChanged,
   std::uint32_t deckSeed,

@@ -119,6 +119,7 @@ const char* cardKindName(CardKind kind) {
     case CardKind::ContinuationTeamScoreUp: return "ContinuationTeamScoreUp";
     case CardKind::ContinuationMemberCostUp: return "ContinuationMemberCostUp";
     case CardKind::ContinuationMemberScoreUp: return "ContinuationMemberScoreUp";
+    case CardKind::ContinuationCostReductionPressure: return "ContinuationCostReductionPressure";
     case CardKind::ContinuationNone: return "ContinuationNone";
   }
   return "Unknown";
@@ -240,15 +241,14 @@ std::string buildSnapshot(const WasmGame& game) {
   out << "\"cost\":" << (state.finalCost.has_value() ? *state.finalCost : calculateFinalCost(state)) << ',';
   out << "\"judgeResult\":\"" << judgeName(judgeResult(state)) << "\",";
   out << "\"revealLimit\":" << calculateRevealLimit(state) << ',';
-  if (state.costLimit.has_value()) {
-    out << "\"costLimit\":" << *state.costLimit << ',';
-  } else {
-    out << "\"costLimit\":null,";
-  }
+  out << "\"baseCostLimit\":" << state.baseCostLimit << ',';
+  out << "\"costLimit\":" << state.costLimit << ',';
   out << "\"deckSeed\":" << state.deckSeed << ',';
   out << "\"isContinuationGame\":" << (state.isContinuationGame ? "true" : "false") << ',';
   out << "\"isDefeatedByAudit\":" << (state.isDefeatedByAudit ? "true" : "false") << ',';
   out << "\"hasUsedForcedUnpaidOvertime\":" << (state.hasUsedForcedUnpaidOvertime ? "true" : "false") << ',';
+  out << "\"cumulativeCostLimitReduction\":" << state.cumulativeCostLimitReduction << ',';
+  out << "\"pendingCostLimitReduction\":" << state.pendingCostLimitReduction << ',';
 
   out << "\"forcedUnpaidOvertimeRounds\":[";
   for (std::size_t i = 0; i < state.forcedUnpaidOvertimeRounds.size(); ++i) {
@@ -438,7 +438,6 @@ EMSCRIPTEN_KEEPALIVE QSCD_GameHandle createGame(
   std::int32_t targetScore,
   std::int32_t teamSize,
   std::int32_t globalExpectedScore,
-  std::int32_t hasCostLimit,
   std::int32_t costLimit,
   std::uint32_t deckSeed
 ) {
@@ -449,7 +448,7 @@ EMSCRIPTEN_KEEPALIVE QSCD_GameHandle createGame(
     targetScore,
     teamSize,
     globalExpectedScore,
-    hasCostLimit != 0 ? std::optional<int>{costLimit} : std::nullopt,
+    costLimit,
     deckSeed,
   };
   auto result = qscd::core::startGame(settings);
@@ -586,7 +585,6 @@ EMSCRIPTEN_KEEPALIVE std::int32_t startContinuationGame(
   std::int32_t targetScore,
   std::int32_t teamSize,
   std::int32_t globalExpectedScore,
-  std::int32_t hasCostLimit,
   std::int32_t costLimit,
   std::int32_t teamCompositionChanged,
   std::uint32_t deckSeed,
@@ -605,7 +603,7 @@ EMSCRIPTEN_KEEPALIVE std::int32_t startContinuationGame(
     targetScore,
     teamSize,
     globalExpectedScore,
-    hasCostLimit != 0 ? std::optional<int>{costLimit} : std::nullopt,
+    costLimit,
     teamCompositionChanged != 0,
     deckSeed,
   };

@@ -14,7 +14,7 @@ struct GameSettings {
   int targetScore{};
   int teamSize{};
   int globalExpectedScore{};
-  std::optional<int> costLimit;
+  int costLimit{rules::defaultCostLimit};
   std::uint32_t deckSeed{rules::defaultDeckSeed};
 };
 
@@ -22,7 +22,7 @@ struct ContinuationSettings {
   int targetScore{};
   int teamSize{};
   int globalExpectedScore{};
-  std::optional<int> costLimit;
+  int costLimit{rules::defaultCostLimit};
   bool teamCompositionChanged{};
   std::uint32_t deckSeed{rules::defaultDeckSeed};
   std::vector<int> retiringColumns;
@@ -54,7 +54,10 @@ struct GameState {
   bool isContinuationGame{};
   bool hasUsedForcedUnpaidOvertime{};
   bool isDefeatedByAudit{};
-  std::optional<int> costLimit;
+  int baseCostLimit{rules::defaultCostLimit};
+  int cumulativeCostLimitReduction{};
+  int pendingCostLimitReduction{};
+  int costLimit{rules::defaultCostLimit};
   std::uint32_t deckSeed{rules::defaultDeckSeed};
   GamePhase phase{GamePhase::Created};
 

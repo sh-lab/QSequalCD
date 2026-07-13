@@ -16,4 +16,9 @@ void runScoringTests() {
   state = applyNullify(state, hands[secondHandIndex], nullifiedTarget).value();
   QSCD_REQUIRE(calculateRoundScore(state, rules::firstRoundNumber) ==
                faceUpScore + expectedScore + expectedScore + rules::scorePlus3HandValue);
+
+  auto costDefeat = startGame(GameSettings{lowTargetScore, rules::minTeamSize, rules::minExpectedScore, 0}).value();
+  costDefeat = playBaseRounds(costDefeat);
+  costDefeat = finishGame(costDefeat).value();
+  QSCD_REQUIRE(judgeResult(costDefeat) == JudgeResult::DefeatByCost);
 }

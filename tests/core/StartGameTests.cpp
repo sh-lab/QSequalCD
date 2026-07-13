@@ -29,14 +29,15 @@ std::vector<CardId> canonicalContinuationIds() {
 } // namespace
 
 void runStartGameTests() {
-  QSCD_REQUIRE(startGame(GameSettings{defaultTargetScore, invalidLowTeamSize, rules::minExpectedScore, std::nullopt}).error().code == GameErrorCode::InvalidTeamSize);
-  QSCD_REQUIRE(startGame(GameSettings{defaultTargetScore, invalidHighTeamSize, rules::minExpectedScore, std::nullopt}).error().code == GameErrorCode::InvalidTeamSize);
-  QSCD_REQUIRE(startGame(GameSettings{defaultTargetScore, rules::minTeamSize, invalidLowExpectedScore, std::nullopt}).error().code == GameErrorCode::InvalidExpectedScore);
-  QSCD_REQUIRE(startGame(GameSettings{defaultTargetScore, rules::minTeamSize, invalidHighExpectedScore, std::nullopt}).error().code == GameErrorCode::InvalidExpectedScore);
+  QSCD_REQUIRE(startGame(GameSettings{defaultTargetScore, invalidLowTeamSize, rules::minExpectedScore, rules::defaultCostLimit}).error().code == GameErrorCode::InvalidTeamSize);
+  QSCD_REQUIRE(startGame(GameSettings{defaultTargetScore, invalidHighTeamSize, rules::minExpectedScore, rules::defaultCostLimit}).error().code == GameErrorCode::InvalidTeamSize);
+  QSCD_REQUIRE(startGame(GameSettings{defaultTargetScore, rules::minTeamSize, invalidLowExpectedScore, rules::defaultCostLimit}).error().code == GameErrorCode::InvalidExpectedScore);
+  QSCD_REQUIRE(startGame(GameSettings{defaultTargetScore, rules::minTeamSize, invalidHighExpectedScore, rules::defaultCostLimit}).error().code == GameErrorCode::InvalidExpectedScore);
 
   const auto state = startedGame();
   QSCD_REQUIRE(state.phase == GamePhase::GameStarted);
   QSCD_REQUIRE(!hasQualityStateField());
+  QSCD_REQUIRE(state.costLimit == rules::defaultCostLimit);
   QSCD_REQUIRE(handCards(state).size() == rules::handCardCount);
   QSCD_REQUIRE(state.members.size() == rules::minTeamSize);
   std::set<CardId> ids;
@@ -51,9 +52,9 @@ void runStartGameTests() {
 
   constexpr std::uint32_t firstSeed = 12345U;
   constexpr std::uint32_t secondSeed = 67890U;
-  const auto firstSeedState = startGame(GameSettings{defaultTargetScore, rules::minTeamSize, rules::minExpectedScore, std::nullopt, firstSeed}).value();
-  const auto repeatedFirstSeedState = startGame(GameSettings{defaultTargetScore, rules::minTeamSize, rules::minExpectedScore, std::nullopt, firstSeed}).value();
-  const auto secondSeedState = startGame(GameSettings{defaultTargetScore, rules::minTeamSize, rules::minExpectedScore, std::nullopt, secondSeed}).value();
+  const auto firstSeedState = startGame(GameSettings{defaultTargetScore, rules::minTeamSize, rules::minExpectedScore, rules::defaultCostLimit, firstSeed}).value();
+  const auto repeatedFirstSeedState = startGame(GameSettings{defaultTargetScore, rules::minTeamSize, rules::minExpectedScore, rules::defaultCostLimit, firstSeed}).value();
+  const auto secondSeedState = startGame(GameSettings{defaultTargetScore, rules::minTeamSize, rules::minExpectedScore, rules::defaultCostLimit, secondSeed}).value();
   QSCD_REQUIRE(firstSeedState.deckSeed == firstSeed);
   QSCD_REQUIRE(firstSeedState.memberDeckOrder == repeatedFirstSeedState.memberDeckOrder);
   QSCD_REQUIRE(firstSeedState.continuationDeckOrder == repeatedFirstSeedState.continuationDeckOrder);
