@@ -7,8 +7,8 @@
 
 namespace qscd::core {
 
-std::vector<CardDefinition> createMemberDeck();
-std::vector<CardDefinition> createContinuationDeck();
+std::vector<CardDefinition> createMemberDeck(MemberDeckSet set = MemberDeckSet::Stable);
+std::vector<CardDefinition> createContinuationDeck(ContinuationDeckSet set = ContinuationDeckSet::Standard);
 std::vector<CardDefinition> createHandCards();
 
 } // namespace qscd::core

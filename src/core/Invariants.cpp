@@ -21,6 +21,9 @@ std::optional<GameError> validateInvariants(const GameState& state) {
 
   std::set<std::pair<int, int>> boardSlots;
   std::set<CardId> ids;
+  int memberCardCount = rules::zeroScore;
+  int continuationCardCount = rules::zeroScore;
+  int handCardCount = rules::zeroScore;
   for (const auto& [id, definition] : state.cardDefinitions) {
     if (!ids.insert(id).second || definition.id != id) {
       return invariantError(id);
@@ -31,6 +34,17 @@ std::optional<GameError> validateInvariants(const GameState& state) {
     }
 
     const auto& position = positionIt->second;
+    switch (definition.category) {
+      case CardCategory::MemberCard:
+        ++memberCardCount;
+        break;
+      case CardCategory::ContinuationCard:
+        ++continuationCardCount;
+        break;
+      case CardCategory::HandCard:
+        ++handCardCount;
+        break;
+    }
     if (const auto* board = std::get_if<BoardPosition>(&position)) {
       if (definition.category != CardCategory::MemberCard) {
         return invariantError(id);
@@ -55,6 +69,15 @@ std::optional<GameError> validateInvariants(const GameState& state) {
         return invariantError(id);
       }
     }
+  }
+
+  const int expectedContinuationCardCount = state.continuationDeckSet == ContinuationDeckSet::Double
+    ? rules::doubleContinuationDeckCardCount
+    : rules::continuationDeckCardCount;
+  if (memberCardCount != rules::memberDeckCardCount ||
+      continuationCardCount != expectedContinuationCardCount ||
+      handCardCount != rules::handCardCount) {
+    return invariantError();
   }
 
   std::set<CardId> continuationDeckIds;
@@ -88,6 +111,42 @@ std::optional<GameError> validateInvariants(const GameState& state) {
     }
   }
 
+  return std::nullopt;
+}
+
+std::optional<GameError> validateInvariants(const ProjectState& state) {
+  if (const auto gameInvariant = validateInvariants(state.currentGame); gameInvariant.has_value()) {
+    return gameInvariant;
+  }
+  if (state.currentGame.memberDeckSet != state.memberDeckSet ||
+      state.currentGame.continuationDeckSet != state.continuationDeckSet) {
+    return invariantError();
+  }
+  if (state.completedGameCount < rules::zeroScore ||
+      state.cumulativeFinalScore < rules::zeroScore ||
+      state.cumulativeFinalCost < rules::zeroScore) {
+    return invariantError();
+  }
+  if (state.mode == ProjectMode::Single && state.completedGameCount > rules::firstRoundNumber) {
+    return invariantError();
+  }
+  if (state.mode == ProjectMode::Large && state.completedGameCount > rules::largeProjectGameCount) {
+    return invariantError();
+  }
+  if (state.mode == ProjectMode::Endless &&
+      (state.status == ProjectStatus::Cleared || state.status == ProjectStatus::Failed)) {
+    return invariantError();
+  }
+  if (state.status == ProjectStatus::Cleared && state.mode == ProjectMode::Large &&
+      (state.completedGameCount != rules::largeProjectGameCount ||
+       state.cumulativeFinalScore < rules::largeProjectTargetScore)) {
+    return invariantError();
+  }
+  if (state.status == ProjectStatus::Failed && state.mode == ProjectMode::Large &&
+      (state.completedGameCount != rules::largeProjectGameCount ||
+       state.cumulativeFinalScore >= rules::largeProjectTargetScore)) {
+    return invariantError();
+  }
   return std::nullopt;
 }
 

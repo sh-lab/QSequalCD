@@ -12,6 +12,8 @@ inline constexpr int minTeamSize = 3;
 inline constexpr int maxTeamSize = 6;
 inline constexpr int minExpectedScore = 3;
 inline constexpr int maxExpectedScore = 6;
+inline constexpr int defaultTeamSize = 5;
+inline constexpr int defaultExpectedScore = 4;
 inline constexpr int defaultTargetScore = 63;
 inline constexpr int defaultCostLimit = 30;
 inline constexpr int baseRoundCount = 3;
@@ -21,7 +23,9 @@ inline constexpr int maxHandCardsPerRound = 2;
 inline constexpr int handCardCount = 5;
 inline constexpr int memberDeckCardCount = 35;
 inline constexpr int continuationDeckCardCount = 14;
+inline constexpr int doubleContinuationDeckCardCount = continuationDeckCardCount * 2;
 inline constexpr int leaveProjectCardCount = 1;
+inline constexpr int highRiskLeaveProjectCardCount = 3;
 inline constexpr int auditCardCount = 1;
 inline constexpr int resignCardCount = 1;
 inline constexpr int teamScoreUpCardCount = 2;
@@ -46,6 +50,8 @@ inline constexpr int nextSlotOffset = 1;
 inline constexpr int zeroScore = 0;
 inline constexpr int memberScoreKindCount = 7;
 inline constexpr int revealLimitExpectedScoreOffset = 2;
+inline constexpr int largeProjectGameCount = 3;
+inline constexpr int largeProjectTargetScore = 200;
 inline constexpr std::uint32_t defaultDeckSeed = 0x51534344U;
 
 inline constexpr std::array<std::pair<int, int>, memberScoreKindCount> memberScoreDistribution{{
@@ -56,6 +62,16 @@ inline constexpr std::array<std::pair<int, int>, memberScoreKindCount> memberSco
   {4, 10},
   {5, 7},
   {6, 2},
+}};
+
+inline constexpr std::array<std::pair<int, int>, memberScoreKindCount> highRiskMemberScoreDistribution{{
+  {0, 3},
+  {1, 3},
+  {2, 4},
+  {3, 4},
+  {4, 6},
+  {5, 8},
+  {6, 4},
 }};
 
 inline constexpr int revealLimitForExpectedScore(int expectedScore) {

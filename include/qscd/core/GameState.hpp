@@ -11,11 +11,13 @@
 namespace qscd::core {
 
 struct GameSettings {
-  int targetScore{};
-  int teamSize{};
-  int globalExpectedScore{};
+  int targetScore{rules::defaultTargetScore};
+  int teamSize{rules::defaultTeamSize};
+  int globalExpectedScore{rules::defaultExpectedScore};
   int costLimit{rules::defaultCostLimit};
   std::uint32_t deckSeed{rules::defaultDeckSeed};
+  MemberDeckSet memberDeckSet{MemberDeckSet::Stable};
+  ContinuationDeckSet continuationDeckSet{ContinuationDeckSet::Standard};
 };
 
 struct ContinuationSettings {
@@ -60,6 +62,8 @@ struct GameState {
   int costLimit{rules::defaultCostLimit};
   std::uint32_t deckSeed{rules::defaultDeckSeed};
   GamePhase phase{GamePhase::Created};
+  MemberDeckSet memberDeckSet{MemberDeckSet::Stable};
+  ContinuationDeckSet continuationDeckSet{ContinuationDeckSet::Standard};
 
   std::unordered_map<CardId, CardDefinition> cardDefinitions;
   std::unordered_map<CardId, Position> positions;
@@ -72,6 +76,24 @@ struct GameState {
 
   std::optional<int> finalScore;
   std::optional<int> finalCost;
+};
+
+struct ProjectSettings {
+  ProjectMode mode{ProjectMode::Single};
+  MemberDeckSet memberDeckSet{MemberDeckSet::Stable};
+  ContinuationDeckSet continuationDeckSet{ContinuationDeckSet::Standard};
+  GameSettings initialGameSettings{};
+};
+
+struct ProjectState {
+  ProjectMode mode{ProjectMode::Single};
+  MemberDeckSet memberDeckSet{MemberDeckSet::Stable};
+  ContinuationDeckSet continuationDeckSet{ContinuationDeckSet::Standard};
+  ProjectStatus status{ProjectStatus::InProgress};
+  GameState currentGame;
+  int completedGameCount{};
+  int cumulativeFinalScore{};
+  int cumulativeFinalCost{};
 };
 
 } // namespace qscd::core

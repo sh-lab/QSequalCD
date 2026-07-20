@@ -33,6 +33,7 @@ add_executable(qscd_core_tests
   tests/core/ContinuationTests.cpp
   tests/core/InvariantTests.cpp
   tests/core/CommandImmutabilityTests.cpp
+  tests/core/ProjectTests.cpp
 )
 
 target_link_libraries(qscd_core_tests PRIVATE qscd_core)

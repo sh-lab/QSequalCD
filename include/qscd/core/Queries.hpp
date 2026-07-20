@@ -2,6 +2,7 @@
 
 #include "qscd/core/GameState.hpp"
 
+#include <optional>
 #include <vector>
 
 namespace qscd::core {
@@ -16,5 +17,7 @@ std::vector<CardId> getBoardCards(const GameState& state, int round);
 std::vector<CardId> getBoardSideCards(const GameState& state, int round);
 std::vector<CardId> getContinuationCardsForMember(const GameState& state, int column);
 JudgeResult judgeResult(const GameState& state);
+std::optional<double> calculateProjectEfficiency(const ProjectState& state);
+ProjectStatus judgeProjectResult(const ProjectState& state);
 
 } // namespace qscd::core

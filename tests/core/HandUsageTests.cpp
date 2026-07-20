@@ -38,6 +38,7 @@ void runHandUsageTests() {
   leaveState = applyNullify(leaveState, leaveHands[firstHandIndex], leave).value();
   leaveState = finishRoundValue(leaveState);
   QSCD_REQUIRE(leaveState.members[rules::firstColumn] == MemberState::Active);
+  QSCD_REQUIRE(calculateFinalCost(leaveState) == rules::minTeamSize);
 
   auto previousRoundState = startRoundValue(startedGame(defaultTargetScore, rules::minTeamSize, rules::minExpectedScore));
   previousRoundState = planNoHandsValue(previousRoundState);

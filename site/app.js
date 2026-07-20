@@ -9,6 +9,8 @@ const targetScore = 63;
 const defaultCostLimit = 30;
 const minTeamSize = 3;
 const maxTeamSize = 6;
+const minExpectedScore = 3;
+const maxExpectedScore = 6;
 const handSize = 5;
 const boardRounds = 5;
 const memberNames = ["Aさん", "Bさん", "Cさん", "Dさん", "Eさん", "Fさん"];
@@ -26,6 +28,7 @@ const state = {
   newGameTeamSize: 5,
   newGameExpectedScore: 4,
   continuationAddCount: 0,
+  continuationExpectedScore: null,
   continuationRetiringColumns: new Set()
 };
 
@@ -109,11 +112,11 @@ function bindEvents() {
   });
 
   root.querySelector("#new-game")?.addEventListener("click", startNewGame);
-  root.querySelector("#team-size")?.addEventListener("change", (event) => {
+  root.querySelector("#team-size")?.addEventListener("input", (event) => {
     state.newGameTeamSize = clampNumber(Number(event.currentTarget.value), minTeamSize, maxTeamSize);
   });
-  root.querySelector("#expected-score")?.addEventListener("change", (event) => {
-    state.newGameExpectedScore = clampNumber(Number(event.currentTarget.value), 3, 6);
+  root.querySelector("#expected-score")?.addEventListener("input", (event) => {
+    state.newGameExpectedScore = clampNumber(Number(event.currentTarget.value), minExpectedScore, maxExpectedScore);
   });
 
   bindCommand("#start-round", () => state.api.startRound(state.handle));
@@ -142,6 +145,10 @@ function bindEvents() {
   root.querySelector("#start-continuation")?.addEventListener("click", startContinuationGame);
   root.querySelector("#continuation-add-count")?.addEventListener("change", (event) => {
     state.continuationAddCount = clampNumber(Number(event.currentTarget.value), 0, maxContinuationAddCount(state.snapshot));
+    render();
+  });
+  root.querySelector("#continuation-expected-score")?.addEventListener("input", (event) => {
+    state.continuationExpectedScore = clampNumber(Number(event.currentTarget.value), minExpectedScore, maxExpectedScore);
     render();
   });
   root.querySelectorAll("[data-retire-column]").forEach((input) => {
@@ -201,7 +208,7 @@ function renderStartPanel() {
           <input id="team-size" type="number" min="${minTeamSize}" max="${maxTeamSize}" value="${state.newGameTeamSize}" />
         </label>
         <label>一人あたり見込み
-          <input id="expected-score" type="number" min="3" max="6" value="${state.newGameExpectedScore}" />
+          <input id="expected-score" type="number" min="${minExpectedScore}" max="${maxExpectedScore}" value="${state.newGameExpectedScore}" />
         </label>
         ${state.showDebug ? `<div class="seed">次の deckSeed: <code>${state.nextDeckSeed}</code></div>` : ""}
       </div>
@@ -562,6 +569,7 @@ function renderContinuationSetup(snapshot) {
   const nextSize = continuationNextTeamSize(snapshot);
   const nextSizeValid = nextSize >= minTeamSize && nextSize <= maxTeamSize;
   const nextCostLimit = snapshot.costLimit - (snapshot.pendingCostLimitReduction ?? 0);
+  const nextExpectedScore = state.continuationExpectedScore ?? snapshot.globalExpectedScore;
   const compositionChanged = forcedRetiringColumns.length > 0 || selectedRetiringColumns.length > 0 || state.continuationAddCount > 0;
   const preview = continuationPreview(snapshot);
   return `
@@ -583,6 +591,9 @@ function renderContinuationSetup(snapshot) {
               <input id="continuation-add-count" type="number" min="0" max="${maxContinuationAddCount(snapshot)}" value="${state.continuationAddCount}" />
             </label>
             <span>次ゲーム人数: <strong class="${nextSizeValid ? "" : "warning-text"}">${nextSize} / ${minTeamSize}〜${maxTeamSize}</strong></span>
+            <label>一人あたり見込み
+              <input id="continuation-expected-score" type="number" min="${minExpectedScore}" max="${maxExpectedScore}" value="${nextExpectedScore}" />
+            </label>
             <span>次ゲームコスト制約: <strong>${nextCostLimit}</strong></span>
           </div>
           <div class="retire-select">
@@ -666,7 +677,7 @@ function startContinuationGame() {
       state.handle,
       Math.max(state.snapshot.score, targetScore),
       nextTeamSize,
-      state.snapshot.globalExpectedScore,
+      state.continuationExpectedScore ?? state.snapshot.globalExpectedScore,
       state.snapshot.baseCostLimit ?? defaultCostLimit,
       compositionChanged ? 1 : 0,
       seed,
@@ -681,6 +692,7 @@ function startContinuationGame() {
 
 function resetContinuationDraft() {
   state.continuationAddCount = 0;
+  state.continuationExpectedScore = null;
   state.continuationRetiringColumns.clear();
 }
 
@@ -700,6 +712,9 @@ function updateSnapshot(snapshot) {
   state.selectedNullifyHandCardId = null;
   state.selectedNullifyTargetCardId = null;
   if (snapshot.phase === "ContinuationCardsDrawn") {
+    if (state.continuationExpectedScore == null) {
+      state.continuationExpectedScore = clampNumber(snapshot.globalExpectedScore, minExpectedScore, maxExpectedScore);
+    }
     normalizeContinuationSelection(snapshot);
   }
   render();

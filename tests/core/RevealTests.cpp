@@ -10,6 +10,18 @@ void runRevealTests() {
     QSCD_REQUIRE(calculateRevealLimit(state) == std::min(base + rules::teamSizeRevealBonus, static_cast<int>(getRevealableCards(state).size())));
   }
 
+  auto leaveState = startedGame(defaultTargetScore, rules::maxTeamSize, rules::minExpectedScore);
+  const auto leave = firstCardOfKind(leaveState, CardKind::MemberLeaveProject);
+  putFirst(leaveState, leave);
+  leaveState = startRoundValue(leaveState);
+  leaveState = planNoHandsValue(leaveState);
+  auto leaveRevealable = getRevealableCards(leaveState);
+  leaveState = revealCards(leaveState, std::vector<CardId>{leave, leaveRevealable[secondHandIndex]}).value();
+  leaveState = finishRoundValue(leaveState);
+  leaveState = startRoundValue(leaveState);
+  QSCD_REQUIRE(getActiveMembers(leaveState).size() == rules::defaultTeamSize);
+  QSCD_REQUIRE(calculateRevealLimit(leaveState) == rules::revealLimitForExpectedScore(rules::minExpectedScore));
+
   auto state = startedGame(defaultTargetScore, rules::minTeamSize, rules::minExpectedScore);
   state = playSimpleRound(state);
   state = playSimpleRound(state);

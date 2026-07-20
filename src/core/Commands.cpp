@@ -17,6 +17,10 @@ Result<GameState, GameError> fail(GameErrorCode code, std::optional<CardId> card
   return Result<GameState, GameError>::failure(GameError{code, cardId, std::nullopt, std::nullopt});
 }
 
+Result<ProjectState, GameError> failProject(GameErrorCode code) {
+  return Result<ProjectState, GameError>::failure(GameError{code, std::nullopt, std::nullopt, std::nullopt});
+}
+
 const CardDefinition* definitionFor(const GameState& state, CardId id) {
   const auto it = state.cardDefinitions.find(id);
   return it == state.cardDefinitions.end() ? nullptr : &it->second;
@@ -86,6 +90,18 @@ bool isValidExpectedScore(int expectedScore) {
   return expectedScore >= rules::minExpectedScore && expectedScore <= rules::maxExpectedScore;
 }
 
+bool isValidProjectMode(ProjectMode mode) {
+  return mode == ProjectMode::Single || mode == ProjectMode::Large || mode == ProjectMode::Endless;
+}
+
+bool isValidMemberDeckSet(MemberDeckSet set) {
+  return set == MemberDeckSet::Stable || set == MemberDeckSet::HighRisk;
+}
+
+bool isValidContinuationDeckSet(ContinuationDeckSet set) {
+  return set == ContinuationDeckSet::Standard || set == ContinuationDeckSet::Double;
+}
+
 bool canFinishGame(const GameState& state) {
   if (state.currentRound < rules::baseRoundCount) {
     return false;
@@ -136,6 +152,13 @@ Result<GameState, GameError> checkedSuccess(GameState state) {
   return Result<GameState, GameError>::success(std::move(state));
 }
 
+Result<ProjectState, GameError> checkedSuccess(ProjectState state) {
+  if (const auto invariant = validateInvariants(state); invariant.has_value()) {
+    return Result<ProjectState, GameError>::failure(*invariant);
+  }
+  return Result<ProjectState, GameError>::success(std::move(state));
+}
+
 } // namespace
 
 Result<GameState, GameError> startGame(const GameSettings& settings) {
@@ -145,6 +168,9 @@ Result<GameState, GameError> startGame(const GameSettings& settings) {
   if (!isValidExpectedScore(settings.globalExpectedScore)) {
     return fail(GameErrorCode::InvalidExpectedScore);
   }
+  if (!isValidMemberDeckSet(settings.memberDeckSet) || !isValidContinuationDeckSet(settings.continuationDeckSet)) {
+    return fail(GameErrorCode::InvariantViolation);
+  }
 
   GameState state;
   state.targetScore = settings.targetScore;
@@ -153,17 +179,19 @@ Result<GameState, GameError> startGame(const GameSettings& settings) {
   state.baseCostLimit = settings.costLimit;
   state.costLimit = settings.costLimit;
   state.deckSeed = settings.deckSeed;
+  state.memberDeckSet = settings.memberDeckSet;
+  state.continuationDeckSet = settings.continuationDeckSet;
   state.phase = GamePhase::GameStarted;
   state.members.assign(static_cast<std::size_t>(settings.teamSize), MemberState::Active);
 
-  auto memberDeck = createMemberDeck();
+  auto memberDeck = createMemberDeck(settings.memberDeckSet);
   shuffleDeck(memberDeck, derivedSeed(settings.deckSeed, 0x4D454D42U));
   for (int i = 0; i < static_cast<int>(memberDeck.size()); ++i) {
     insertDefinition(state, memberDeck[static_cast<std::size_t>(i)], DeckPosition{i});
     state.memberDeckOrder.push_back(memberDeck[static_cast<std::size_t>(i)].id);
   }
 
-  auto continuationDeck = createContinuationDeck();
+  auto continuationDeck = createContinuationDeck(settings.continuationDeckSet);
   shuffleDeck(continuationDeck, derivedSeed(settings.deckSeed, 0x434F4E54U));
   for (int i = 0; i < static_cast<int>(continuationDeck.size()); ++i) {
     insertDefinition(state, continuationDeck[static_cast<std::size_t>(i)], ContinuationDeckPosition{i});
@@ -496,7 +524,7 @@ Result<GameState, GameError> startContinuationGame(const GameState& state, const
   }
 
   next.memberDeckOrder.clear();
-  auto memberDeck = createMemberDeck();
+  auto memberDeck = createMemberDeck(state.memberDeckSet);
   shuffleDeck(memberDeck, derivedSeed(settings.deckSeed, 0x4D454D42U));
   for (int i = 0; i < static_cast<int>(memberDeck.size()); ++i) {
     insertDefinition(next, memberDeck[static_cast<std::size_t>(i)], DeckPosition{i});
@@ -510,6 +538,95 @@ Result<GameState, GameError> startContinuationGame(const GameState& state, const
 
   rebuildContinuationDeck(next);
   next.phase = GamePhase::GameStarted;
+  return checkedSuccess(std::move(next));
+}
+
+Result<ProjectState, GameError> startProject(const ProjectSettings& settings) {
+  if (!isValidProjectMode(settings.mode)) {
+    return failProject(GameErrorCode::InvalidProjectMode);
+  }
+  if (!isValidMemberDeckSet(settings.memberDeckSet) || !isValidContinuationDeckSet(settings.continuationDeckSet)) {
+    return failProject(GameErrorCode::InvariantViolation);
+  }
+
+  GameSettings gameSettings = settings.initialGameSettings;
+  gameSettings.memberDeckSet = settings.memberDeckSet;
+  gameSettings.continuationDeckSet = settings.continuationDeckSet;
+  if (settings.mode == ProjectMode::Large) {
+    gameSettings.costLimit = rules::defaultCostLimit;
+  }
+  auto game = startGame(gameSettings);
+  if (!game.hasValue()) {
+    return Result<ProjectState, GameError>::failure(game.error());
+  }
+
+  ProjectState project;
+  project.mode = settings.mode;
+  project.memberDeckSet = settings.memberDeckSet;
+  project.continuationDeckSet = settings.continuationDeckSet;
+  project.currentGame = game.value();
+  return checkedSuccess(std::move(project));
+}
+
+Result<ProjectState, GameError> completeProjectGame(const ProjectState& project, const GameState& finishedGame) {
+  if (project.status != ProjectStatus::InProgress) {
+    return failProject(GameErrorCode::ProjectAlreadyFinished);
+  }
+  if (finishedGame.phase != GamePhase::ContinuationCardsDrawn) {
+    return failProject(GameErrorCode::InvalidPhase);
+  }
+  if (finishedGame.memberDeckSet != project.memberDeckSet || finishedGame.continuationDeckSet != project.continuationDeckSet) {
+    return failProject(GameErrorCode::ProjectSetChangeNotAllowed);
+  }
+
+  ProjectState next = project;
+  next.currentGame = finishedGame;
+  ++next.completedGameCount;
+  next.cumulativeFinalScore += finishedGame.finalScore.value_or(calculateFinalScore(finishedGame));
+  next.cumulativeFinalCost += finishedGame.finalCost.value_or(calculateFinalCost(finishedGame));
+
+  const bool gameWon = judgeResult(finishedGame) == JudgeResult::Victory;
+  if (!gameWon) {
+    next.status = project.mode == ProjectMode::Single ? ProjectStatus::Failed : ProjectStatus::Collapsed;
+    return checkedSuccess(std::move(next));
+  }
+
+  switch (project.mode) {
+    case ProjectMode::Single:
+      next.status = ProjectStatus::Cleared;
+      break;
+    case ProjectMode::Large:
+      if (next.completedGameCount >= rules::largeProjectGameCount) {
+        next.status = next.cumulativeFinalScore >= rules::largeProjectTargetScore
+          ? ProjectStatus::Cleared
+          : ProjectStatus::Failed;
+      }
+      break;
+    case ProjectMode::Endless:
+      break;
+  }
+  return checkedSuccess(std::move(next));
+}
+
+Result<ProjectState, GameError> startContinuationGame(const ProjectState& project, const ContinuationSettings& settings) {
+  if (project.status != ProjectStatus::InProgress) {
+    return failProject(GameErrorCode::ProjectAlreadyFinished);
+  }
+  if (project.mode == ProjectMode::Single ||
+      (project.mode == ProjectMode::Large && project.completedGameCount >= rules::largeProjectGameCount)) {
+    return failProject(GameErrorCode::ProjectAlreadyFinished);
+  }
+  if (project.currentGame.memberDeckSet != project.memberDeckSet ||
+      project.currentGame.continuationDeckSet != project.continuationDeckSet) {
+    return failProject(GameErrorCode::ProjectSetChangeNotAllowed);
+  }
+
+  auto game = startContinuationGame(project.currentGame, settings);
+  if (!game.hasValue()) {
+    return Result<ProjectState, GameError>::failure(game.error());
+  }
+  ProjectState next = project;
+  next.currentGame = game.value();
   return checkedSuccess(std::move(next));
 }
 

@@ -11,6 +11,7 @@ void runExtraRoundTests();
 void runContinuationTests();
 void runInvariantTests();
 void runCommandImmutabilityTests();
+void runProjectTests();
 
 int main() {
   runDeckFactoryTests();
@@ -24,5 +25,6 @@ int main() {
   runContinuationTests();
   runInvariantTests();
   runCommandImmutabilityTests();
+  runProjectTests();
   return 0;
 }

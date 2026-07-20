@@ -127,4 +127,8 @@ https://sh-lab.github.io/QSequalCD/
 
 ## ライセンス / License
 
-MIT License
+- ソースコードおよび付随文書（`docs/rule.md`を除く）：[MIT License](LICENSE)
+- ルール仕様 [`docs/rule.md`](docs/rule.md)：[Creative Commons Attribution 4.0 International（CC BY 4.0）](https://creativecommons.org/licenses/by/4.0/deed.ja)
+
+- Source code and accompanying documentation (excluding `docs/rule.md`): [MIT License](LICENSE)
+- Rule specification [`docs/rule.md`](docs/rule.md): [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/)

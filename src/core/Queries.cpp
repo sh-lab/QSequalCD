@@ -77,7 +77,13 @@ int calculateFinalCost(const GameState& state) {
     const auto* board = std::get_if<BoardPosition>(&position);
     if (board != nullptr) {
       const auto* definition = definitionFor(state, id);
-      if (definition != nullptr && definition->category == CardCategory::MemberCard && !isForcedRound(state, board->row)) {
+      const auto runtimeIt = state.runtimeStates.find(id);
+      const bool isFaceUpLeaveCard = definition != nullptr &&
+                                     definition->kind == CardKind::MemberLeaveProject &&
+                                     runtimeIt != state.runtimeStates.end() &&
+                                     runtimeIt->second == RuntimeState::FaceUp;
+      if (definition != nullptr && definition->category == CardCategory::MemberCard &&
+          !isForcedRound(state, board->row) && !isFaceUpLeaveCard) {
         cost += rules::memberCostUpValue;
       }
       continue;
@@ -95,7 +101,7 @@ int calculateRevealLimit(const GameState& state) {
   if (state.globalExpectedScore >= rules::minExpectedScore && state.globalExpectedScore <= rules::maxExpectedScore) {
     limit = rules::revealLimitForExpectedScore(state.globalExpectedScore);
   }
-  if (state.teamSize == rules::teamSizeRevealBonusThreshold) {
+  if (static_cast<int>(getActiveMembers(state).size()) == rules::teamSizeRevealBonusThreshold) {
     limit += rules::teamSizeRevealBonus;
   }
   if (state.currentRound > rules::baseRoundCount) {
@@ -184,6 +190,17 @@ JudgeResult judgeResult(const GameState& state) {
     return JudgeResult::DefeatByCost;
   }
   return JudgeResult::Victory;
+}
+
+std::optional<double> calculateProjectEfficiency(const ProjectState& state) {
+  if (state.mode != ProjectMode::Large || state.cumulativeFinalCost <= rules::zeroScore) {
+    return std::nullopt;
+  }
+  return static_cast<double>(state.cumulativeFinalScore) / static_cast<double>(state.cumulativeFinalCost);
+}
+
+ProjectStatus judgeProjectResult(const ProjectState& state) {
+  return state.status;
 }
 
 } // namespace qscd::core

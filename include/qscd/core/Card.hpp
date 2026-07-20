@@ -51,6 +51,12 @@ enum class CardIdValue : std::uint32_t {
   MemberScore6_02,
 
   MemberLeaveProject_01,
+  MemberScore0_03,
+  MemberScore5_08,
+  MemberScore6_03,
+  MemberScore6_04,
+  MemberLeaveProject_02,
+  MemberLeaveProject_03,
 
   Hand_01 = 100,
   Hand_02,
@@ -72,6 +78,20 @@ enum class CardIdValue : std::uint32_t {
   ContinuationNone_01,
   ContinuationNone_02,
   ContinuationNone_03,
+  ContinuationAudit_02,
+  ContinuationResign_02,
+  ContinuationTeamScoreUp_03,
+  ContinuationTeamScoreUp_04,
+  ContinuationMemberCostUp_04,
+  ContinuationMemberCostUp_05,
+  ContinuationMemberCostUp_06,
+  ContinuationMemberScoreUp_04,
+  ContinuationMemberScoreUp_05,
+  ContinuationMemberScoreUp_06,
+  ContinuationCostReductionPressure_02,
+  ContinuationNone_04,
+  ContinuationNone_05,
+  ContinuationNone_06,
 };
 
 struct CardId {
@@ -187,6 +207,29 @@ enum class JudgeResult {
   DefeatByAudit,
 };
 
+enum class ProjectMode {
+  Single,
+  Large,
+  Endless,
+};
+
+enum class MemberDeckSet {
+  Stable,
+  HighRisk,
+};
+
+enum class ContinuationDeckSet {
+  Standard,
+  Double,
+};
+
+enum class ProjectStatus {
+  InProgress,
+  Cleared,
+  Failed,
+  Collapsed,
+};
+
 enum class GameErrorCode {
   InvalidPhase,
   InvalidCardId,
@@ -203,6 +246,9 @@ enum class GameErrorCode {
   FinishGameNotAllowed,
   InvalidTeamSize,
   InvalidExpectedScore,
+  InvalidProjectMode,
+  ProjectAlreadyFinished,
+  ProjectSetChangeNotAllowed,
   InvariantViolation,
 };
 

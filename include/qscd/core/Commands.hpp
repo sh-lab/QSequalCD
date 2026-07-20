@@ -18,5 +18,8 @@ Result<GameState, GameError> requestExtraRound(const GameState& state, const Ext
 Result<GameState, GameError> finishGame(const GameState& state);
 Result<GameState, GameError> drawContinuationCards(const GameState& state);
 Result<GameState, GameError> startContinuationGame(const GameState& state, const ContinuationSettings& settings);
+Result<ProjectState, GameError> startProject(const ProjectSettings& settings);
+Result<ProjectState, GameError> completeProjectGame(const ProjectState& project, const GameState& finishedGame);
+Result<ProjectState, GameError> startContinuationGame(const ProjectState& project, const ContinuationSettings& settings);
 
 } // namespace qscd::core

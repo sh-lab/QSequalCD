@@ -29,6 +29,13 @@ std::vector<CardId> canonicalContinuationIds() {
 } // namespace
 
 void runStartGameTests() {
+  const auto standard = startGame(GameSettings{});
+  QSCD_REQUIRE(standard.hasValue());
+  QSCD_REQUIRE(standard.value().targetScore == rules::defaultTargetScore);
+  QSCD_REQUIRE(standard.value().teamSize == rules::defaultTeamSize);
+  QSCD_REQUIRE(standard.value().globalExpectedScore == rules::defaultExpectedScore);
+  QSCD_REQUIRE(standard.value().costLimit == rules::defaultCostLimit);
+
   QSCD_REQUIRE(startGame(GameSettings{defaultTargetScore, invalidLowTeamSize, rules::minExpectedScore, rules::defaultCostLimit}).error().code == GameErrorCode::InvalidTeamSize);
   QSCD_REQUIRE(startGame(GameSettings{defaultTargetScore, invalidHighTeamSize, rules::minExpectedScore, rules::defaultCostLimit}).error().code == GameErrorCode::InvalidTeamSize);
   QSCD_REQUIRE(startGame(GameSettings{defaultTargetScore, rules::minTeamSize, invalidLowExpectedScore, rules::defaultCostLimit}).error().code == GameErrorCode::InvalidExpectedScore);

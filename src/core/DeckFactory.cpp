@@ -14,8 +14,9 @@ CardDefinition effectCard(CardId id, CardCategory category, CardKind kind, Effec
 
 } // namespace
 
-std::vector<CardDefinition> createMemberDeck() {
-  return {
+std::vector<CardDefinition> createMemberDeck(MemberDeckSet set) {
+  if (set == MemberDeckSet::Stable) {
+    return {
     memberScore(cardId(CardIdValue::MemberScore0_01), 0),
     memberScore(cardId(CardIdValue::MemberScore0_02), 0),
     memberScore(cardId(CardIdValue::MemberScore1_01), 1),
@@ -51,11 +52,52 @@ std::vector<CardDefinition> createMemberDeck() {
     memberScore(cardId(CardIdValue::MemberScore6_01), 6),
     memberScore(cardId(CardIdValue::MemberScore6_02), 6),
     effectCard(cardId(CardIdValue::MemberLeaveProject_01), CardCategory::MemberCard, CardKind::MemberLeaveProject, EffectType::LeaveProject),
-  };
+    };
+  }
+  if (set == MemberDeckSet::HighRisk) {
+    return {
+      memberScore(cardId(CardIdValue::MemberScore0_01), 0),
+      memberScore(cardId(CardIdValue::MemberScore0_02), 0),
+      memberScore(cardId(CardIdValue::MemberScore0_03), 0),
+      memberScore(cardId(CardIdValue::MemberScore1_01), 1),
+      memberScore(cardId(CardIdValue::MemberScore1_02), 1),
+      memberScore(cardId(CardIdValue::MemberScore1_03), 1),
+      memberScore(cardId(CardIdValue::MemberScore2_01), 2),
+      memberScore(cardId(CardIdValue::MemberScore2_02), 2),
+      memberScore(cardId(CardIdValue::MemberScore2_03), 2),
+      memberScore(cardId(CardIdValue::MemberScore2_04), 2),
+      memberScore(cardId(CardIdValue::MemberScore3_01), 3),
+      memberScore(cardId(CardIdValue::MemberScore3_02), 3),
+      memberScore(cardId(CardIdValue::MemberScore3_03), 3),
+      memberScore(cardId(CardIdValue::MemberScore3_04), 3),
+      memberScore(cardId(CardIdValue::MemberScore4_01), 4),
+      memberScore(cardId(CardIdValue::MemberScore4_02), 4),
+      memberScore(cardId(CardIdValue::MemberScore4_03), 4),
+      memberScore(cardId(CardIdValue::MemberScore4_04), 4),
+      memberScore(cardId(CardIdValue::MemberScore4_05), 4),
+      memberScore(cardId(CardIdValue::MemberScore4_06), 4),
+      memberScore(cardId(CardIdValue::MemberScore5_01), 5),
+      memberScore(cardId(CardIdValue::MemberScore5_02), 5),
+      memberScore(cardId(CardIdValue::MemberScore5_03), 5),
+      memberScore(cardId(CardIdValue::MemberScore5_04), 5),
+      memberScore(cardId(CardIdValue::MemberScore5_05), 5),
+      memberScore(cardId(CardIdValue::MemberScore5_06), 5),
+      memberScore(cardId(CardIdValue::MemberScore5_07), 5),
+      memberScore(cardId(CardIdValue::MemberScore5_08), 5),
+      memberScore(cardId(CardIdValue::MemberScore6_01), 6),
+      memberScore(cardId(CardIdValue::MemberScore6_02), 6),
+      memberScore(cardId(CardIdValue::MemberScore6_03), 6),
+      memberScore(cardId(CardIdValue::MemberScore6_04), 6),
+      effectCard(cardId(CardIdValue::MemberLeaveProject_01), CardCategory::MemberCard, CardKind::MemberLeaveProject, EffectType::LeaveProject),
+      effectCard(cardId(CardIdValue::MemberLeaveProject_02), CardCategory::MemberCard, CardKind::MemberLeaveProject, EffectType::LeaveProject),
+      effectCard(cardId(CardIdValue::MemberLeaveProject_03), CardCategory::MemberCard, CardKind::MemberLeaveProject, EffectType::LeaveProject),
+    };
+  }
+  return {};
 }
 
-std::vector<CardDefinition> createContinuationDeck() {
-  return {
+std::vector<CardDefinition> createContinuationDeck(ContinuationDeckSet set) {
+  std::vector<CardDefinition> deck{
     effectCard(cardId(CardIdValue::ContinuationAudit_01), CardCategory::ContinuationCard, CardKind::ContinuationAudit, EffectType::Audit),
     effectCard(cardId(CardIdValue::ContinuationResign_01), CardCategory::ContinuationCard, CardKind::ContinuationResign, EffectType::Resign),
     effectCard(cardId(CardIdValue::ContinuationTeamScoreUp_01), CardCategory::ContinuationCard, CardKind::ContinuationTeamScoreUp, EffectType::TeamScoreUp),
@@ -71,6 +113,30 @@ std::vector<CardDefinition> createContinuationDeck() {
     effectCard(cardId(CardIdValue::ContinuationNone_02), CardCategory::ContinuationCard, CardKind::ContinuationNone, EffectType::None),
     effectCard(cardId(CardIdValue::ContinuationNone_03), CardCategory::ContinuationCard, CardKind::ContinuationNone, EffectType::None),
   };
+  if (set == ContinuationDeckSet::Standard) {
+    return deck;
+  }
+  if (set != ContinuationDeckSet::Double) {
+    return {};
+  }
+  const std::vector<CardDefinition> additional{
+    effectCard(cardId(CardIdValue::ContinuationAudit_02), CardCategory::ContinuationCard, CardKind::ContinuationAudit, EffectType::Audit),
+    effectCard(cardId(CardIdValue::ContinuationResign_02), CardCategory::ContinuationCard, CardKind::ContinuationResign, EffectType::Resign),
+    effectCard(cardId(CardIdValue::ContinuationTeamScoreUp_03), CardCategory::ContinuationCard, CardKind::ContinuationTeamScoreUp, EffectType::TeamScoreUp),
+    effectCard(cardId(CardIdValue::ContinuationTeamScoreUp_04), CardCategory::ContinuationCard, CardKind::ContinuationTeamScoreUp, EffectType::TeamScoreUp),
+    effectCard(cardId(CardIdValue::ContinuationMemberCostUp_04), CardCategory::ContinuationCard, CardKind::ContinuationMemberCostUp, EffectType::MemberCostUp),
+    effectCard(cardId(CardIdValue::ContinuationMemberCostUp_05), CardCategory::ContinuationCard, CardKind::ContinuationMemberCostUp, EffectType::MemberCostUp),
+    effectCard(cardId(CardIdValue::ContinuationMemberCostUp_06), CardCategory::ContinuationCard, CardKind::ContinuationMemberCostUp, EffectType::MemberCostUp),
+    effectCard(cardId(CardIdValue::ContinuationMemberScoreUp_04), CardCategory::ContinuationCard, CardKind::ContinuationMemberScoreUp, EffectType::MemberScoreUp),
+    effectCard(cardId(CardIdValue::ContinuationMemberScoreUp_05), CardCategory::ContinuationCard, CardKind::ContinuationMemberScoreUp, EffectType::MemberScoreUp),
+    effectCard(cardId(CardIdValue::ContinuationMemberScoreUp_06), CardCategory::ContinuationCard, CardKind::ContinuationMemberScoreUp, EffectType::MemberScoreUp),
+    effectCard(cardId(CardIdValue::ContinuationCostReductionPressure_02), CardCategory::ContinuationCard, CardKind::ContinuationCostReductionPressure, EffectType::CostReductionPressure),
+    effectCard(cardId(CardIdValue::ContinuationNone_04), CardCategory::ContinuationCard, CardKind::ContinuationNone, EffectType::None),
+    effectCard(cardId(CardIdValue::ContinuationNone_05), CardCategory::ContinuationCard, CardKind::ContinuationNone, EffectType::None),
+    effectCard(cardId(CardIdValue::ContinuationNone_06), CardCategory::ContinuationCard, CardKind::ContinuationNone, EffectType::None),
+  };
+  deck.insert(deck.end(), additional.begin(), additional.end());
+  return deck;
 }
 
 std::vector<CardDefinition> createHandCards() {
